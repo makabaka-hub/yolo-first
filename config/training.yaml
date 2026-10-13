@@ -1,0 +1,11 @@
+# 第一次训练的默认参数；data 相对于本配置文件所在目录。
+data: coco8.yaml
+model: yolo26n.pt
+epochs: 20
+imgsz: 640
+batch: 4
+device: 0
+workers: 0
+seed: 0
+name: first_train
+preview_name: preview
