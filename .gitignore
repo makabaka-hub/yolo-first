@@ -1,0 +1,14 @@
+.venv/
+.idea/
+.ultralytics/
+.cache/
+__pycache__/
+datasets/
+models/
+weights/
+runs/
+*.pt
+logs/*.log
+logs/*.json
+.env
+.env.*
