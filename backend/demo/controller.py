@@ -37,6 +37,7 @@ class DemoController:
         self.commands.put(("image", (source, options)))
 
     def camera(self, index: int, options: DemoOptions) -> None:
+        self.stop_capture.clear()
         self.commands.put(("camera", (index, options)))
 
     def configure(self, options: DemoOptions) -> None:
@@ -82,9 +83,8 @@ class DemoController:
     def _camera(self, index: int, options: DemoOptions) -> None:
         self._release_camera()
         self._load(options)
-        self._state("working", f"正在打开摄像头 {index}…")
-        self.capture = open_camera(index)
-        self.stop_capture.clear()
+        self._state("working", f"正在打开摄像头 {index}，可点击停止取消…")
+        self.capture = open_camera(index, cancel=self.stop_capture)
         self._state("streaming", "摄像头实时识别中。点击停止可释放摄像头；保存结果可保留当前画面。")
 
     def _configure(self, options: DemoOptions) -> None:
@@ -149,6 +149,9 @@ class DemoController:
                         frame = self.detector.detect(image, self.options, "摄像头 · 镜像", "camera", started)
                         self.last_image, self.last_source = image, "摄像头截图"
                         self.events.publish("demo_frame", frame=frame)
+                except InterruptedError:
+                    self._release_camera()
+                    self._state("idle", "已取消打开摄像头，可以重试或选择图片。")
                 except Exception as error:
                     self._release_camera()
                     self.events.publish("demo_error", message=str(error))

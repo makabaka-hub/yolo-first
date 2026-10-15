@@ -10,6 +10,7 @@ from common.demo import DemoOptions
 from common.events import EventBus
 from frontend.desktop.bridge import DesktopInbox
 from frontend.desktop.window import DemoWindow
+from frontend.desktop.instance import DesktopInstance, focus_existing_window
 
 
 def build_demo():
@@ -26,13 +27,20 @@ def build_demo():
 
 
 def main():
-    root, window, controller = build_demo()
-    controller.start()
-    try:
-        root.mainloop()
-    finally:
-        controller.close()
+    with DesktopInstance() as instance:
+        if not instance.acquired:
+            focus_existing_window()
+            return
+        root, window, controller = build_demo()
+        controller.start()
+        try:
+            root.mainloop()
+        finally:
+            controller.close()
 
 
 if __name__ == "__main__":
+    from multiprocessing import freeze_support
+
+    freeze_support()
     main()

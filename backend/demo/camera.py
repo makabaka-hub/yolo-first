@@ -1,24 +1,25 @@
-"""打开 Windows 摄像头、读取镜像画面，并处理初始化失败时的释放。"""
+"""带超时和取消地打开相机，验证首帧后交付连接，并读取镜像画面。"""
+
+from .camera_session import CameraSession
 
 
-def open_camera(index: int):
-    import cv2
-
-    capture = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-    if not capture.isOpened():
-        capture.release()
-        capture = cv2.VideoCapture(index, cv2.CAP_MSMF)
-    if not capture.isOpened():
-        capture.release()
-        raise RuntimeError("摄像头无法打开。请尝试编号 1，或检查 Windows 相机权限及其他程序占用。")
-    try:
-        capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        return capture
-    except Exception:
-        capture.release()
-        raise
+def open_camera(index: int, cancel=None, timeout: float = 4.0):
+    errors = []
+    for backend in ("CAP_MSMF", "CAP_DSHOW"):
+        if cancel is not None and cancel.is_set():
+            raise InterruptedError("已取消打开摄像头。")
+        capture = CameraSession(index, backend)
+        try:
+            capture.wait_first(timeout, cancel)
+            return capture
+        except InterruptedError:
+            capture.release()
+            raise
+        except (RuntimeError, TimeoutError) as error:
+            capture.release()
+            errors.append(str(error))
+    detail = "响应超时" if any("超时" in error for error in errors) else "无法读取画面"
+    raise RuntimeError(f"摄像头{detail}。请关闭占用相机的软件，确认编号和 Windows 相机权限后重试。")
 
 
 def read_camera(capture):

@@ -26,6 +26,7 @@ class DemoWindow:
         self.ready = False
         self.busy = True
         self.streaming = False
+        self.opening_camera = False
         self.closed = False
         self.fullscreen = False
         self.show_original = False
@@ -196,7 +197,7 @@ class DemoWindow:
         self.model_combo.configure(state="readonly" if available else "disabled")
         self.scale.configure(state="normal" if available else "disabled")
         self.camera_combo.configure(state="readonly" if available and not self.streaming else "disabled")
-        self.stop_button.configure(state="normal" if self.streaming else "disabled")
+        self.stop_button.configure(state="normal" if self.streaming or self.opening_camera else "disabled")
         self.save_button.configure(state="normal" if self.frame is not None else "disabled")
 
     def choose_image(self):
@@ -216,6 +217,7 @@ class DemoWindow:
 
     def start_camera(self):
         if self.ready and not self.busy:
+            self.opening_camera = True
             self.busy = True
             self._set_controls()
             self.port.camera(int(self.camera_index.get()), self.options())
@@ -266,7 +268,7 @@ class DemoWindow:
     def escape(self, event=None):
         if self.fullscreen:
             self.toggle_fullscreen()
-        elif self.streaming:
+        elif self.streaming or self.opening_camera:
             self.stop()
 
     def _poll(self):
@@ -281,6 +283,8 @@ class DemoWindow:
             elif event.name == "demo_state":
                 self.busy = data["phase"] in ("loading", "working")
                 self.streaming = data["phase"] == "streaming"
+                if data["phase"] in ("idle", "streaming"):
+                    self.opening_camera = False
                 self.status_text.set(data["message"])
                 self.status_label.configure(fg=t.MUTED)
                 if data["phase"] == "loading":
@@ -294,6 +298,7 @@ class DemoWindow:
                 self._on_frame(data["frame"])
             elif event.name == "demo_error":
                 self.busy, self.streaming = False, False
+                self.opening_camera = False
                 self.status_text.set(data["message"])
                 self.status_label.configure(fg=t.ERROR)
                 self.mode_text.set("请检查输入")
