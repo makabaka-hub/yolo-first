@@ -17,9 +17,11 @@ from .bridge import DesktopInbox
 
 
 class DemoWindow:
-    def __init__(self, root, port: DemoPort, inbox: DesktopInbox, models: tuple[DemoModel, ...], samples: dict[str, str]):
+    def __init__(self, root, port: DemoPort, inbox: DesktopInbox, models: tuple[DemoModel, ...], samples: dict[str, str], training_port=None, training_inbox=None):
         self.root, self.port, self.inbox = root, port, inbox
         self.models, self.samples = models, samples
+        self.training_port, self.training_inbox = training_port, training_inbox
+        self.training_window = None
         self.frame: DemoFrame | None = None
         self.current_image = None
         self.photo = None
@@ -66,6 +68,8 @@ class DemoWindow:
         t.label(title, "  VISION", 25, t.MUTED).pack(side="left")
         t.label(identity, "目标检测演示   /   图片识别与实时视觉", 10, t.MUTED).pack(anchor="w", pady=(3, 0))
         t.button(header, "全屏演示  F11", self.toggle_fullscreen, small=True).pack(side="right", padx=(14, 0))
+        if self.training_port is not None:
+            t.button(header, "训练过程", self.show_training, small=True).pack(side="right", padx=(14, 0))
         self.device_text = tk.StringVar(value="●  正在准备模型")
         tk.Label(header, textvariable=self.device_text, bg=t.ACCENT_DARK, fg=t.ACCENT,
                  font=(t.FONT, 10), padx=14, pady=9).pack(side="right")
@@ -265,6 +269,17 @@ class DemoWindow:
         self.fullscreen = not self.fullscreen
         self.root.attributes("-fullscreen", self.fullscreen)
 
+    def show_training(self):
+        if self.training_port is None:
+            return
+        from .training import TrainingWindow
+
+        if self.training_window is None or self.training_window.closed:
+            self.training_window = TrainingWindow(self.root, self.training_port, self.training_inbox)
+        else:
+            self.training_window.root.deiconify()
+            self.training_window.root.lift()
+
     def escape(self, event=None):
         if self.fullscreen:
             self.toggle_fullscreen()
@@ -361,6 +376,10 @@ class DemoWindow:
         if self.closed:
             return
         self.closed = True
+        if self.training_window is not None:
+            self.training_window.close()
+        if self.training_port is not None:
+            self.training_port.stop()
         self.port.close()
         for job in (self.poll_job, self.threshold_job, self.resize_job):
             if job is not None:

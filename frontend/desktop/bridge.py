@@ -31,3 +31,20 @@ class DesktopInbox:
         if frame is not None:
             events.append(frame)
         return events
+
+
+class TrainingInbox:
+    def __init__(self):
+        self.events = SimpleQueue()
+
+    def on_event(self, event: Event) -> None:
+        if event.name == "training_view":
+            self.events.put(event)
+
+    def drain(self) -> list[Event]:
+        events = []
+        while True:
+            try:
+                events.append(self.events.get_nowait())
+            except Empty:
+                return events
