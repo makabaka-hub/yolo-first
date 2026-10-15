@@ -32,7 +32,7 @@ class ArchitectureTests(unittest.TestCase):
             root = Path(temporary)
             for directory in ("backend", "common", "frontend"):
                 shutil.copytree(ROOT / directory, root / directory, ignore=shutil.ignore_patterns("__pycache__"))
-            for name in ("main.py", "train.py", "predict.py", "check_env.py"):
+            for name in ("main.py", "train.py", "predict.py", "check_env.py", "demo.py"):
                 shutil.copyfile(ROOT / name, root / name)
             probe = """
 import importlib
@@ -62,8 +62,8 @@ assert 'ultralytics' not in sys.modules, '导入时加载了 Ultralytics'
     def test_frontend_and_backend_only_share_contracts(self):
         forbidden = {
             "backend": {"frontend"},
-            "frontend": {"backend", "torch", "ultralytics", "yaml"},
-            "common": {"backend", "frontend", "torch", "ultralytics", "yaml"},
+            "frontend": {"backend", "torch", "ultralytics", "yaml", "cv2", "numpy"},
+            "common": {"backend", "frontend", "torch", "ultralytics", "yaml", "cv2", "numpy"},
         }
         for directory, banned in forbidden.items():
             for source in (ROOT / directory).rglob("*.py"):
